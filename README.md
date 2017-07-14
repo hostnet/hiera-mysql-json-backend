@@ -1,4 +1,4 @@
-[![Gem Version](https://badge.fury.io/rb/hiera-mysql-backend.png)](http://badge.fury.io/rb/hiera-mysql-backend)
+[![Gem Version](https://badge.fury.io/rb/hiera-mysql-json-backend.png)](http://badge.fury.io/rb/hiera-mysql-json-backend)
 
 ## hiera-mysql-backend
 

@@ -1,8 +1,9 @@
 class Hiera
   module Backend
-    class Mysql2_backend
+    class Mysql_json_backend
 
       def initialize(cache=nil)
+        require 'json'
         if defined?(JRUBY_VERSION)
           require 'jdbc/mysql'
           require 'java'
@@ -17,7 +18,7 @@ class Hiera
 
         @cache = cache || Filecache.new
 
-        Hiera.debug("Hiera MySQL2 initialized")
+        Hiera.debug("Hiera mysql_json initialized")
       end
 
       def lookup(key, scope, order_override, resolution_type)
@@ -62,8 +63,30 @@ class Hiera
           Hiera.debug("Found #{key} in #{source}")
 
           new_answer = Backend.parse_answer(data[key], scope)
+
           results = query(connection_hash, new_answer)
 
+          next if results.length != 1
+          begin
+            new_answer = JSON.parse(results[0]['value'])
+          rescue
+            Hiera.debug("Miserable failure while looking for #{key}.")
+            next
+          end
+
+          case resolution_type.is_a?(Hash) ? :hash : resolution_type
+          when :array
+            raise Exception, "Hiera type mismatch for key '#{key}': expected Array and got #{new_answer.class}" unless new_answer.kind_of? Array or new_answer.kind_of? String
+            results ||= []
+            results << new_answer
+          when :hash
+            raise Exception, "Hiera type mismatch for key '#{key}': expected Hash and got #{new_answer.class}" unless new_answer.kind_of? Hash
+            results ||= {}
+            results = Backend.merge_answer(new_answer, results, resolution_type)
+          else
+            results = new_answer
+            break
+          end
         end
         return results
       end

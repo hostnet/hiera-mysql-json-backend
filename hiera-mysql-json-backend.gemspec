@@ -1,13 +1,13 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |gem|
-  gem.name          = "hiera-mysql-backend"
-  gem.version       = "0.0.9"
-  gem.authors       = ["Telmo"]
-  gem.email         = ["telmox@gmail.com"]
-  gem.description   = %q{Alternative MySQL backend for hiera}
-  gem.summary       = %q{Alternative MySQL backend for hiera}
-  gem.homepage      = "https://github.com/Telmo/hiera-mysql-backend"
+  gem.name          = "hiera-mysql-json-backend"
+  gem.version       = "1.0.0"
+  gem.authors       = ["Hostnet"]
+  gem.email         = ["opensource@hostnet.nl"]
+  gem.description   = %q{Alternative MySQL backend with json support for hiera}
+  gem.summary       = %q{Alternative MySQL backend with json support for hiera}
+  gem.homepage      = "https://github.com/hostnet/hiera-mysql-json-backend"
   gem.license       = "MIT"
 
   gem.files         = `git ls-files`.split($/)
