@@ -64,11 +64,11 @@ class Hiera
 
           new_answer = Backend.parse_answer(data[key], scope)
 
-          results = query(connection_hash, new_answer)
+          sql_results = query(connection_hash, new_answer)
 
-          next if results.length != 1
+          next if sql_results.length != 1
           begin
-            new_answer = JSON.parse(results[0]['value'])
+            new_answer = JSON.parse(sql_results[0]['value'])
           rescue
             Hiera.debug("Miserable failure while looking for #{key}.")
             next
