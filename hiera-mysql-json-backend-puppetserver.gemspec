@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "hiera-mysql-json-backend-jruby"
-  gem.version       = "1.0.0"
+  gem.version       = "1.0.1"
   gem.authors       = ["Hostnet"]
   gem.email         = ["opensource@hostnet.nl"]
   gem.description   = %q{Alternative MySQL backend with json support for hiera}
