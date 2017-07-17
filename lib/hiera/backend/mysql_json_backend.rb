@@ -33,7 +33,7 @@ class Hiera
 
         Backend.datasources(scope, order_override) do |source|
           Hiera.debug("Looking for data source #{source}")
-          sqlfile = Backend.datafile(:mysql2, scope, source, "sql") || next
+          sqlfile = Backend.datafile(:mysql_json, scope, source, "sql") || next
 
           next unless File.exist?(sqlfile)
           data = @cache.read(sqlfile, Hash, {}) do |datafile|
