@@ -28,7 +28,7 @@ class Hiera
         # so hiera('myvalue', 'test1') returns [nil,nil,nil,nil]
         results = nil
 
-        Hiera.debug("looking up #{key} in MySQL2 Backend")
+        Hiera.debug("looking up #{key} in mysql_json Backend")
         Hiera.debug("resolution type is #{resolution_type}")
 
         Backend.datasources(scope, order_override) do |source|
@@ -41,20 +41,20 @@ class Hiera
           end
 
           mysql_config = data.fetch(:dbconfig, {})
-          mysql_host = mysql_config.fetch(:host, nil) || Config[:mysql2][:host] || 'localhost'
-          mysql_user = mysql_config.fetch(:user, nil) || Config[:mysql2][:user]
-          mysql_pass = mysql_config.fetch(:pass, nil) || Config[:mysql2][:pass]
-          mysql_port = mysql_config.fetch(:port, nil) || Config[:mysql2][:port] || '3306'
-          mysql_database = mysql_config.fetch(:database, nil) || Config[:mysql2][:database]
+          mysql_host = mysql_config.fetch(:host, nil) || Config[:mysql_json][:host] || 'localhost'
+          mysql_user = mysql_config.fetch(:user, nil) || Config[:mysql_json][:user]
+          mysql_pass = mysql_config.fetch(:pass, nil) || Config[:mysql_json][:pass]
+          mysql_port = mysql_config.fetch(:port, nil) || Config[:mysql_json][:port] || '3306'
+          mysql_database = mysql_config.fetch(:database, nil) || Config[:mysql_json][:database]
 
           connection_hash = {
-            :host => mysql_host,
-            :username => mysql_user,
-            :password => mysql_pass,
-            :database => mysql_database,
-            :port => mysql_port,
-            :reconnect => true}
-
+            host:      mysql_host,
+            username:  mysql_user,
+            password:  mysql_pass,
+            database:  mysql_database,
+            port:      mysql_port,
+            reconnect: true
+          }
 
           Hiera.debug("data #{data.inspect}")
           next if data.empty?
@@ -88,19 +88,18 @@ class Hiera
             break
           end
         end
-        return results
+        results
       end
-
 
       def query(connection_hash, query)
         Hiera.debug("Executing SQL Query: #{query}")
 
-        data=[]
-        mysql_host=connection_hash[:host]
-        mysql_user=connection_hash[:username]
-        mysql_pass=connection_hash[:password]
-        mysql_database=connection_hash[:database]
-        mysql_port=connection_hash[:port]
+        data = []
+        mysql_host     = connection_hash[:host]
+        mysql_user     = connection_hash[:username]
+        mysql_pass     = connection_hash[:password]
+        mysql_database = connection_hash[:database]
+        mysql_port     = connection_hash[:port]
 
         if defined?(JRUBY_VERSION)
           Jdbc::MySQL.load_driver
@@ -109,7 +108,7 @@ class Hiera
           props.set_property :user, mysql_user
           props.set_property :password, mysql_pass
 
-          conn = com.mysql.jdbc.Driver.new.connect(url,props)
+          conn = com.mysql.jdbc.Driver.new.connect(url, props)
           stmt = conn.create_statement
 
           res = stmt.execute_query(query)
@@ -118,7 +117,7 @@ class Hiera
 
           Hiera.debug("Mysql Query returned #{numcols} rows")
 
-          while ( res.next ) do
+          while res.next
             if numcols < 2
               Hiera.debug("Mysql value : #{res.getString(1)}")
               data << res.getString(1)
@@ -144,8 +143,7 @@ class Hiera
           end
         end
 
-        return data
-
+        data
       end
     end
   end
