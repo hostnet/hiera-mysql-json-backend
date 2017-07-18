@@ -18,7 +18,25 @@ class Hiera
 
         @cache = cache || Filecache.new
 
-        Hiera.debug("Hiera mysql_json initialized")
+        Hiera.debug('Hiera mysql_json initialized')
+      end
+
+      def should_lookup?(constraints, scope)
+        return true unless constraints.is_a?(Hash)
+        should_lookup = false
+        constraints.each do |item, matchers|
+          next unless scope.exist?(item.to_s)
+          if scope[item.to_s] =~ compile_regexes(matchers)
+            should_lookup = true
+            break
+          end
+        end
+        should_lookup
+      end
+
+      def compile_regexes(regexes)
+        res = regexes.map { |re| Regexp.compile(re) }
+        Regexp.union(res)
       end
 
       def lookup(key, scope, order_override, resolution_type)
@@ -30,6 +48,8 @@ class Hiera
 
         Hiera.debug("looking up #{key} in mysql_json Backend")
         Hiera.debug("resolution type is #{resolution_type}")
+
+        return nil unless should_lookup?(Config[:mysql_json][:only_for], scope)
 
         Backend.datasources(scope, order_override) do |source|
           Hiera.debug("Looking for data source #{source}")
