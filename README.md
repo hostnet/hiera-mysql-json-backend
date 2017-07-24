@@ -1,28 +1,112 @@
 [![Gem Version](https://badge.fury.io/rb/hiera-mysql-json-backend.png)](http://badge.fury.io/rb/hiera-mysql-json-backend)
 
-## hiera-mysql-backend
+## hiera-mysql-json-backend
 
-Alternate MySQL backend for Hiera
+Alternate MySQL backend for Hiera with json support
 
-This is a MySQL backend for Hiera inspired by [hiera-mysql](https://github.com/crayfishx/hiera-mysql). Unfortunately no work has been done to that backend for the past 9 months and it was missing a couple of features I needed so I decided to pick up the torch and implement them myself.
+This is a backend for Hiera based on
+[hiera-mysql-backend](https://github.com/Telmo/hiera-mysql-backend).
 
-### What is different from hiera-mysql
+### What makes this backend different from the other mysql backends
 
-In [hiera-mysql](https://github.com/crayfishx/hiera-mysql) you define the queries in the hiera.yaml file. I felt this was too restricting so instead hiera-mysql-backend uses, poorly named, sql files. This sql files follow the Hiera hierarchy.
+This backend differs from
+[hiera-mysql](https://github.com/crayfishx/hiera-mysql) and 
+[hiera-mysql-backend](https://github.com/Telmo/hiera-mysql-backend) in that it
+expects queries to return json. This json is then parsed and the resulting data
+structure is given back to the lookup.
 
-[hiera-mysql](https://github.com/crayfishx/hiera-mysql) would also return the last matching query not the first one which I felt it was confusing.
+### Usage
 
-[hiera-mysql](https://github.com/crayfishx/hiera-mysql) used the mysql gem, I am partial to [mysql2](https://github.com/brianmario/mysql2)
+Puppet client:
 
-Exception handling. hiera-mysql would cause a puppet run to fail if one of the queries was incorrect. For example a fact that you are distributing with a module is needed for the query to return its data but that fact is not available outside the module having a `SELECT * from %{custom_fact}` would make puppet runs fail.
+`/opt/puppetlabs/puppet/bin/gem install hiera-mysql-json-backend mysql2`
 
-### What goes into the sql files.
+Puppet server:
 
-The poorly named sql files are really yaml files where the key is the lookup key and the value is the SQL statement (it accepts interpolation)
+`/opt/puppetlabs/bin/puppetserver gem install hiera-mysql-json-backend-jruby jdbc-mysql`
 
-As of version 0.0.4 you can also add connection information to these sql files, this allows you to connect to different databases. This is optional if no connection information is found it will use the default defined in your hiera.yaml config.
+### Configuring hiera
 
-Lets assume your _datadir_ is `/etc/puppet/hieradata/` and your hierarchy for hiera just have a common. hiera-mysql-backend would look for /etc/puppet/hieradata/common.sql the common.sql would look like:
+The backend is configured like any other in the hiera.conf. Here is the
+simplest possible example:
+
+```yaml
+---
+:backends:
+  - yaml
+  - mysql_json
+
+:yaml:
+  :datadir: /etc/puppet/hieradata
+
+:mysql_json:
+  :datadir: /etc/puppet/hieradata
+
+:hierarchy:
+  - "%{::clientcert}"
+  - "%{::custom_location}"
+  - common
+
+:logger: console
+```
+
+This will cause it to try to connect on localhost:3306 with no username and
+password. This will probably not work. The following options can be set:
+
+* `host`: mysql host (string)
+* `port`: mysql port (int)
+* `user`: mysql user (string)
+* `pass`: mysql password (string)
+* `database`: mysql database name (string)
+* `datadir`: root of your `mysql_json` hierarchy (string)
+* `only_for`: only perform queries if conditions in this section are met (hash)
+* `ignore_json_parse_errors`: Do not raise an exception when the database
+  contains invalid json (boolean, defaults to false)
+
+A more complete example might contain:
+
+```yaml
+:mysql_json:
+  :datadir: /etc/puppet/hierasql
+  :host: db042.example.com
+  :user: puppetserver
+  :pass: secret123
+  :port: 3306
+  :ignore_json_parse_errors: true # why why why...
+  :only_for:
+    :fqdn:
+      - '^vagrant.+'
+      - '^node\d+\.someservice\.example\.com$'
+    :domain:
+      - '^vagrant.+
+
+```
+
+This will perform lookups if any of the given conditions are met:
+
+* The nodes fqdn fact starts with 'vagrant'
+* The nodes fqdn fact looks like node01.someservice.example.com
+* The nodes domain fact starts with 'vagrant'
+
+Any node fact may be used to build these conditions.
+
+Note that putting something in the list that always matches makes the whole
+`only_for` block useless.
+
+### Defining queries
+
+Queries are defined in he poorly named sql files. These  are really yaml files
+where the key is the lookup key and the value is the SQL statement (it accepts
+interpolation)
+
+As of version 0.0.4 you can also add connection information to these sql files,
+this allows you to connect to different databases. This is optional if no
+connection information is found it will use the default defined in your
+hiera.yaml config.
+
+Lets assume your _datadir_ is `/etc/puppet/hieradata/` and your hierarchy for
+hiera just have a common. hiera-mysql-backend would look for
+/etc/puppet/hieradata/common.sql the common.sql would look like:
 
 ```yaml
 ---
@@ -34,57 +118,34 @@ Lets assume your _datadir_ is `/etc/puppet/hieradata/` and your hierarchy for hi
   :database: testhieradb
   :port: 44445
 
-applications: SELECT * FROM applications WHERE host='%{fqdn}';
-coats: SELECT cut,name,type FROM coats WHERE color='brown';
+applications: SELECT value FROM applications WHERE host='%{fqdn}';
 ```
 
 If `host` is not defined it will use `localhost` as default.
 
 If `port` is not defined it will use the default `3306` mysql port
 
-running `hiera applications` would run the query against the configured database.
+Running `hiera applications` would run the query against the configured
+database, parse the result as json and return the resulting data structure. If
+all you want is a string, strings are valid json, too.
 
 
-### Using
+### Error handling
 
-`gem install hiera-mysql-backend`
+When encountering invalid json, it will raise an exception, which would in turn
+cause catalog compilation to fail. You can disable this behaviour by setting
+`ignore_json_parse_errors`.
 
+When no results are returned by your query, it will return nil.
 
-### Configuring Hiera
+When multiple results are returned by your query, it will return nil. A future
+version will introduce `ignore_multiple_results`, defaulting to true, to make
+it possible to trigger a catalog compilation in this case.
 
-Hiera configuration is pretty simple
-
-```yaml
----
-:backends:
-  - yaml
-  - mysql2
-
-:yaml:
-  :datadir: /etc/puppet/hieradata
-
-:mysql2:
-  :datadir: /etc/puppet/hieradata
-  :host: hostname
-  :user: username
-  :pass: password
-  :database: database
-  :port: 3306
-
-:hierarchy:
-  - "%{::clientcert}"
-  - "%{::custom_location}"
-  - common
-
-:logger: console
-```
-
-If `host` is not defined it will use `localhost` as default.
-
-If `port` is not defined it will use the default `3306` mysql port
 
 ## Known issues
 
+1. Multiple results are currently silently ignored.
 1. It always return an Array of hashes regardless of the number of items returned. (I did this on purpose because it is what I needed but I may be persuaded to do otherwise)
 2. This README is poorly written.
 
