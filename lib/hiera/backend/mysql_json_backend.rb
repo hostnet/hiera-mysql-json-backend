@@ -25,7 +25,7 @@ class Hiera
         return true unless constraints.is_a?(Hash)
         should_lookup = false
         constraints.each do |item, matchers|
-          next unless scope.exist?(item.to_s)
+          next unless scope[item.to_s]
           if scope[item.to_s] =~ compile_regexes(matchers)
             should_lookup = true
             break
@@ -85,7 +85,7 @@ class Hiera
           new_answer = Backend.parse_answer(data[key], scope)
 
           sql_results = query(connection_hash, new_answer)
-
+          # TODO: make sure we fail if we have more than 1 result, skip if less than 1.
           next if sql_results.length != 1
           begin
             new_answer = JSON.parse(sql_results[0]['value'])
