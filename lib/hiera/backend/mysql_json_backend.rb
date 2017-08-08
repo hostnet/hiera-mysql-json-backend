@@ -90,7 +90,7 @@ class Hiera
           begin
             new_answer = JSON.parse(sql_results[0]['value'])
           rescue
-            raise Exception, "JSON parse error for key '#{key}'." unless Config[:mysql_json][:ignore_json_parse_errors]
+            raise Exception, "JSON parse error for key '#{key}'. Offending data: #{sql_results[0]['value']}." unless Config[:mysql_json][:ignore_json_parse_errors]
             Hiera.debug("Miserable failure while looking for #{key}.")
             next
           end
@@ -139,16 +139,11 @@ class Hiera
           Hiera.debug("Mysql Query returned #{numcols} rows")
 
           while res.next
-            if numcols < 2
-              Hiera.debug("Mysql value : #{res.getString(1)}")
-              data << res.getString(1)
-            else
-              row = {}
-              (1..numcols).each do |c|
-                row[md.getColumnName(c)] = res.getString(c)
-              end
-              data << row
+            row = {}
+            (1..numcols).each do |c|
+              row[md.getColumnName(c)] = res.getString(c)
             end
+            data << row
           end
 
         else
