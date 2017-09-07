@@ -15,3 +15,8 @@
 - Made improvements to the connection Hash
 - Fixed an issue where if no port was defined nill would be passed
 - Added defaults for hostname and port, hostname will default to `localhost` port to `3306`
+
+### 2.0.0
+
+- If we cannot parse JSON as json, do something nasty to try if the value is a
+  boolean
