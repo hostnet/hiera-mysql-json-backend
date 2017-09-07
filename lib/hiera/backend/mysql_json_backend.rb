@@ -82,16 +82,34 @@ class Hiera
 
           Hiera.debug("Found #{key} in #{source}")
 
-          new_answer = Backend.parse_answer(data[key], scope)
+          query = Backend.parse_answer(data[key], scope)
 
-          sql_results = query(connection_hash, new_answer)
+          sql_results = query(connection_hash, query)
           # TODO: make sure we fail if we have more than 1 result, skip if less than 1.
           next if sql_results.length != 1
+
+          new_answer = nil
+          sqlvalue = sql_results[0]['value']
+
           begin
-            new_answer = JSON.parse(sql_results[0]['value'])
+            new_answer = JSON.parse(sqlvalue)
           rescue
-            raise Exception, "JSON parse error for key '#{key}'. Offending data: #{sql_results[0]['value']}." unless Config[:mysql_json][:ignore_json_parse_errors]
-            Hiera.debug("Miserable failure while looking for #{key}.")
+            Hiera.debug("Miserable failure while parsing #{key} as JSON.")
+          end
+
+          if new_answer.nil?
+            case sqlvalue
+            when /^(true|t|yes|y|1)$/i
+              new_answer = true
+            when /^(false|f|no|n|0)$/i
+              new_answer = false
+            else
+              Hiera.debug("Miserable failure while parsing #{key} as boolean.")
+            end
+          end
+
+          if new_answer.nil?
+            raise Exception, "Parse error for key '#{key}'. Offending data: #{sql_results[0]['value']}." unless Config[:mysql_json][:ignore_json_parse_errors]
             next
           end
 
