@@ -92,23 +92,9 @@ class Hiera
           sqlvalue = sql_results[0]['value']
 
           begin
-            new_answer = JSON.parse(sqlvalue)
+            new_answer = JSON.parse("{\"r\":#{sqlvalue}}")['r']
           rescue
             Hiera.debug("Miserable failure while parsing #{key} as JSON.")
-          end
-
-          if new_answer.nil?
-            case sqlvalue
-            when /^(true|t|yes|y|1)$/i
-              new_answer = true
-            when /^(false|f|no|n|0)$/i
-              new_answer = false
-            else
-              Hiera.debug("Miserable failure while parsing #{key} as boolean.")
-            end
-          end
-
-          if new_answer.nil?
             raise Exception, "Parse error for key '#{key}'. Offending data: #{sql_results[0]['value']}." unless Config[:mysql_json][:ignore_json_parse_errors]
             next
           end
