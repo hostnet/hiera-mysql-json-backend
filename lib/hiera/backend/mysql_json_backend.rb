@@ -149,7 +149,9 @@ class Hiera
             end
             data << row
           end
-
+          stmt.close
+          conn.close
+          data
         else
           client = Mysql2::Client.new(connection_hash)
           begin
