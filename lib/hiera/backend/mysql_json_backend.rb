@@ -66,6 +66,9 @@ class Hiera
           mysql_pass = mysql_config.fetch(:pass, nil) || Config[:mysql_json][:pass]
           mysql_port = mysql_config.fetch(:port, nil) || Config[:mysql_json][:port] || '3306'
           mysql_database = mysql_config.fetch(:database, nil) || Config[:mysql_json][:database]
+          lookup_constraints = data.fetch(:only_for, nil) || Config[:mysql_json][:only_for] || {}
+
+          next unless should_lookup?(lookup_constraints, scope)
 
           connection_hash = {
             host:      mysql_host,

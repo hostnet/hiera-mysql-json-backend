@@ -20,3 +20,7 @@
 
 - If we cannot parse JSON as json, do something nasty to try if the value is a
   boolean
+
+### 2.1.0
+
+- Host/domain constraints can now be defined per hierarchy file instead of being global only
