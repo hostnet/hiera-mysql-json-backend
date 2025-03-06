@@ -24,3 +24,7 @@
 ### 2.1.0
 
 - Host/domain constraints can now be defined per hierarchy file instead of being global only
+
+### 2.2.0
+
+- Proper connection closing and previous patches
